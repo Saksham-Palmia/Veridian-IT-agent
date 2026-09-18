@@ -1,0 +1,87 @@
+[
+  {
+    "ticket_id": "TK-001",
+    "request_id": "REQ-002",
+    "employee_id": "EMP-002",
+    "category": "SECURITY_INCIDENT",
+    "description": "Employee received suspicious phishing email. No link clicked. Security review required.",
+    "risk": "HIGH",
+    "status": "IN_PROGRESS",
+    "assigned_team": "Security",
+    "source_policy": "KB-09",
+    "notification_sent": true,
+    "created_at": "2026-09-02T09:32:00Z",
+    "updated_at": "2026-09-02T09:35:00Z"
+  },
+  {
+    "ticket_id": "TK-002",
+    "request_id": "REQ-006",
+    "employee_id": "EMP-006",
+    "category": "PASSWORD",
+    "description": "Account locked after 5 failed login attempts. IT manual unlock required.",
+    "risk": "MEDIUM",
+    "status": "RESOLVED",
+    "assigned_team": "IT Support",
+    "source_policy": "KB-01",
+    "notification_sent": true,
+    "created_at": "2026-09-06T09:46:00Z",
+    "updated_at": "2026-09-06T10:15:00Z"
+  },
+  {
+    "ticket_id": "TK-003",
+    "request_id": "REQ-007",
+    "employee_id": "EMP-007",
+    "category": "ADMIN_ACCESS",
+    "description": "Employee requesting admin/privileged access to production database. Requires manager and IT Security approval.",
+    "risk": "HIGH",
+    "status": "PENDING_APPROVAL",
+    "assigned_team": "IT Security",
+    "source_policy": "KB-06",
+    "notification_sent": true,
+    "created_at": "2026-09-07T13:01:00Z",
+    "updated_at": "2026-09-07T13:01:00Z"
+  },
+  {
+    "ticket_id": "TK-004",
+    "request_id": "REQ-008",
+    "employee_id": "EMP-008",
+    "category": "LAPTOP",
+    "description": "Laptop performance issues. IT diagnosis required. Possible early replacement under Asset Management Policy.",
+    "risk": "MEDIUM",
+    "status": "IN_PROGRESS",
+    "assigned_team": "IT Support",
+    "source_policy": "KB-05",
+    "notification_sent": true,
+    "created_at": "2026-09-08T10:31:00Z",
+    "updated_at": "2026-09-08T11:00:00Z"
+  },
+  {
+    "ticket_id": "TK-005",
+    "request_id": "REQ-009",
+    "employee_id": "EMP-009",
+    "category": "SECURITY_INCIDENT",
+    "description": "Employee clicked phishing link. Device may be compromised. Immediate Security investigation required.",
+    "risk": "HIGH",
+    "status": "ESCALATED",
+    "assigned_team": "Security",
+    "source_policy": "KB-09",
+    "notification_sent": true,
+    "created_at": "2026-09-09T15:01:00Z",
+    "updated_at": "2026-09-09T15:05:00Z"
+  },
+  {
+    "ticket_id": "TK-006",
+    "request_id": "REQ-010",
+    "employee_id": "EMP-001",
+    "category": "WFH_EQUIPMENT",
+    "description": "WFH equipment request: monitor and keyboard. Requires manager approval before IT procurement.",
+    "risk": "LOW",
+    "status": "PENDING_APPROVAL",
+    "assigned_team": "IT Support",
+    "source_policy": "KB-04",
+    "notification_sent": true,
+    "created_at": "2026-09-10T11:01:00Z",
+    "updated_at": "2026-09-10T11:01:00Z"
+  }
+]
+

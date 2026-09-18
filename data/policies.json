@@ -1,0 +1,111 @@
+[
+  {
+    "id": "KB-01",
+    "title": "Password Reset and Account Lockout",
+    "category": "PASSWORD",
+    "keywords": ["password", "reset", "locked", "lockout", "account", "credentials", "login", "forgot", "expire", "unlock"],
+    "content": "Employees can perform a self-service password reset via the company portal at any time. After five (5) consecutive failed login attempts, the account will be automatically locked. A locked account cannot be unlocked by the employee through self-service; IT Support must manually unlock the account. Employees should contact IT Support immediately if they are locked out. IT Support will verify the employee identity before unlocking the account. Password must be at least 12 characters, include uppercase, lowercase, number, and special character. Passwords expire every 90 days.",
+    "resolution_type": "SELF_SERVICE",
+    "escalation_threshold": "lockout",
+    "assigned_team": "IT Support",
+    "contact_email": "itsupport@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-01"
+  },
+  {
+    "id": "KB-02",
+    "title": "VPN Access",
+    "category": "VPN",
+    "keywords": ["vpn", "remote", "access", "network", "credentials", "expired", "connect", "tunnel", "certificate"],
+    "content": "Full-time employees are automatically provisioned VPN access upon joining. Contractors and temporary staff require explicit manager approval before VPN access is granted — the manager must submit a VPN Access Request form. VPN credentials expire every 90 days and must be renewed by the employee through the Self-Service Portal. If the renewal window is missed, IT Support will need to manually reactivate access. Employees travelling internationally should notify IT Support 48 hours in advance so that geo-restrictions can be adjusted.",
+    "resolution_type": "SELF_SERVICE",
+    "escalation_threshold": "contractor_or_expired",
+    "assigned_team": "IT Support",
+    "contact_email": "itsupport@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-02"
+  },
+  {
+    "id": "KB-03",
+    "title": "Software Installation",
+    "category": "SOFTWARE",
+    "keywords": ["software", "install", "application", "app", "program", "tool", "license", "download", "catalogue", "catalog"],
+    "content": "Employees may self-install any software listed in the Approved Software Catalogue without raising an IT ticket. The Approved Catalogue is available on the intranet. Software NOT listed in the catalogue requires a formal IT Security Review before installation. To request approval, submit a Software Request via the IT portal including the software name, version, business justification, and vendor security documentation. IT Security will review within 5 business days. Unapproved software must not be installed on company devices. Violation may result in disciplinary action.",
+    "resolution_type": "CONDITIONAL",
+    "escalation_threshold": "non_catalog",
+    "assigned_team": "IT Security",
+    "contact_email": "itsecurity@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-03"
+  },
+  {
+    "id": "KB-04",
+    "title": "Work-From-Home Equipment Policy",
+    "category": "WFH_EQUIPMENT",
+    "keywords": ["wfh", "work from home", "remote work", "home office", "monitor", "keyboard", "mouse", "equipment", "ergonomic", "desk", "chair", "headset"],
+    "content": "Full-time employees who have completed their 90-day probationary period are eligible for WFH equipment support. Eligible employees may request up to £500 of home-office equipment per calendar year. Requests must be approved by the direct manager before submission to IT. IT will procure standard equipment from the approved vendor list. Custom or non-standard equipment requires additional approval from the Finance department. Equipment remains company property and must be returned upon termination. Contractors are not eligible for WFH equipment support.",
+    "resolution_type": "CONDITIONAL",
+    "escalation_threshold": "requires_manager_approval",
+    "assigned_team": "IT Support",
+    "contact_email": "itsupport@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-04"
+  },
+  {
+    "id": "KB-05",
+    "title": "Laptop Replacement and Asset Management",
+    "category": "LAPTOP",
+    "keywords": ["laptop", "computer", "device", "hardware", "broken", "damaged", "slow", "replace", "replacement", "asset", "macbook", "windows"],
+    "content": "Laptops are replaced on a 3-year refresh cycle under the Asset Management Policy. Early replacement requires documented evidence of hardware failure (e.g., IT diagnostic report). Accidental damage may be covered by the corporate insurance policy — the employee must file a damage report within 24 hours of the incident. Loss or theft must be reported to IT Security and the office manager immediately; a police report may be required. Replacement laptops are provisioned from the IT asset pool; if unavailable, procurement can take up to 10 business days. Both the Laptop Replacement Policy and the Asset Management Policy apply and must be evaluated together.",
+    "resolution_type": "ESCALATE",
+    "escalation_threshold": "always",
+    "assigned_team": "IT Support",
+    "contact_email": "itsupport@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-05"
+  },
+  {
+    "id": "KB-06",
+    "title": "Administrative and Privileged Access",
+    "category": "ADMIN_ACCESS",
+    "keywords": ["admin", "administrator", "root", "sudo", "privileged", "server", "production", "database", "elevated", "access control", "superuser"],
+    "content": "Administrative and privileged access to production systems, servers, and databases requires formal approval from both the direct manager and the IT Security team. Requests must include a documented business justification, the specific systems requiring access, and the expected duration. All privileged access is time-limited and reviewed quarterly. Privileged sessions must be conducted through the approved PAM (Privileged Access Management) system. Sharing privileged credentials is strictly prohibited. Violations will result in immediate access revocation and may result in disciplinary proceedings.",
+    "resolution_type": "ESCALATE",
+    "escalation_threshold": "always",
+    "assigned_team": "IT Security",
+    "contact_email": "itsecurity@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-06"
+  },
+  {
+    "id": "KB-07",
+    "title": "Guest Wi-Fi Access",
+    "category": "GUEST_WIFI",
+    "keywords": ["guest", "wifi", "wi-fi", "wireless", "visitor", "internet", "network", "password", "hotspot"],
+    "content": "Guest Wi-Fi access is available for visitors and contractors who require temporary internet access on personal devices. Guest Wi-Fi credentials can be generated at the front-desk kiosk in any Veridian office location — no IT ticket is required. Credentials are valid for 24 hours and are automatically revoked after expiry. Guest Wi-Fi is isolated from the corporate network and does not provide access to internal systems. Employees requiring corporate Wi-Fi access should use their standard corporate credentials. Guest Wi-Fi must not be used for confidential company work.",
+    "resolution_type": "RESOLVE",
+    "escalation_threshold": "none",
+    "assigned_team": null,
+    "contact_email": null,
+    "source": "Veridian Corp Data Pack — KB-07"
+  },
+  {
+    "id": "KB-08",
+    "title": "New Employee Onboarding — IT Setup",
+    "category": "ONBOARDING",
+    "keywords": ["new", "onboarding", "join", "start", "first day", "setup", "account", "email", "badge", "access card"],
+    "content": "New employees will receive IT setup instructions on their first day. Standard provisioning includes: laptop from the approved hardware pool, corporate email account, Active Directory account, VPN access (full-time employees only), access to standard software suite, and building access badge. Provisioning is initiated by HR upon contract signing and normally completes within 2 business days before the start date. Delays should be reported to HR and IT Support together. Non-standard software or access requests must be submitted separately by the hiring manager before the employee's start date.",
+    "resolution_type": "ESCALATE",
+    "escalation_threshold": "requires_hr_coordination",
+    "assigned_team": "IT Support",
+    "contact_email": "itsupport@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-08"
+  },
+  {
+    "id": "KB-09",
+    "title": "Security Incident Response — Phishing, Malware and Unauthorized Access",
+    "category": "SECURITY_INCIDENT",
+    "keywords": ["phishing", "malware", "virus", "ransomware", "suspicious", "email", "hack", "breach", "unauthorized", "suspicious link", "attachment", "clicked", "compromised", "infected"],
+    "content": "Any suspected phishing attempt, malware infection, ransomware, or unauthorized access must be reported to the Security team immediately. Do not attempt to remediate the issue yourself. Steps: (1) Disconnect the affected device from all networks (Wi-Fi and Ethernet) immediately. (2) Do NOT power off the device — preserve evidence. (3) Report the incident to security@veridian-corp.example or call the Security Hotline. (4) Preserve all suspicious emails — do not delete them. (5) Do not click any links or open attachments in suspicious emails. The Security team will respond within 1 hour for critical incidents. All security incidents are treated as HIGH risk and require immediate human review.",
+    "resolution_type": "ESCALATE",
+    "escalation_threshold": "always",
+    "assigned_team": "Security",
+    "contact_email": "security@veridian-corp.example",
+    "source": "Veridian Corp Data Pack — KB-09"
+  }
+]
+

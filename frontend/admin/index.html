@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veridian IT Support — Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; }
+    .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+  </style>
+</head>
+<body class="min-h-screen text-gray-800">
+
+  <!-- Navigation -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center font-bold text-white text-lg">
+          V
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">Veridian IT Admin Console</h1>
+          <p class="text-xs text-slate-400">Observability & Request Monitoring</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition-colors">
+          ← Employee Chat UI
+        </a>
+        <button onclick="refreshAll()" class="text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg font-medium text-white transition-colors">
+          🔄 Refresh Data
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Requests</div>
+        <div id="statTotalReqs" class="text-3xl font-extrabold text-slate-900 mt-2">—</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Tickets</div>
+        <div id="statActiveTickets" class="text-3xl font-extrabold text-blue-600 mt-2">—</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">High Risk Escalations</div>
+        <div id="statHighRisk" class="text-3xl font-extrabold text-rose-600 mt-2">—</div>
+      </div>
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notifications Sent</div>
+        <div id="statNotifs" class="text-3xl font-extrabold text-emerald-600 mt-2">—</div>
+      </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Tables (Left 2 cols) -->
+      <div class="lg:col-span-2 space-y-8">
+        
+        <!-- Requests Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h2 class="font-bold text-slate-800">Employee Requests</h2>
+            <span class="text-xs text-slate-400">Click row to inspect decision pipeline</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-100">
+                <tr>
+                  <th class="py-3 px-4">Req ID</th>
+                  <th class="py-3 px-4">Employee</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Risk</th>
+                  <th class="py-3 px-4">Created</th>
+                </tr>
+              </thead>
+              <tbody id="requestsTableBody" class="divide-y divide-slate-100 font-medium">
+                <tr><td colspan="6" class="p-6 text-center text-slate-400">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h2 class="font-bold text-slate-800">ITSM Tickets</h2>
+            <span class="text-xs text-slate-400">Escalated human interventions</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 text-slate-500 uppercase text-[11px] tracking-wider font-semibold border-b border-slate-100">
+                <tr>
+                  <th class="py-3 px-4">Ticket ID</th>
+                  <th class="py-3 px-4">Req ID</th>
+                  <th class="py-3 px-4">Assigned Team</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Policy</th>
+                  <th class="py-3 px-4">Notified</th>
+                </tr>
+              </thead>
+              <tbody id="ticketsTableBody" class="divide-y divide-slate-100 font-medium">
+                <tr><td colspan="6" class="p-6 text-center text-slate-400">Loading tickets...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Audit & Pipeline Inspector -->
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-24">
+          <h3 class="font-bold text-slate-900 text-base mb-1">Agent Decision Inspector</h3>
+          <p class="text-xs text-slate-500 mb-4" id="inspectorSubtitle">Select a request from the table to view its full observable decision workflow.</p>
+          
+          <div id="inspectorContent" class="space-y-4">
+            <div class="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm">
+              👈 Click any request row to view the end-to-end agent decision pipeline
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const API = '';
+    let currentSelectedReqId = null;
+
+    window.addEventListener('DOMContentLoaded', refreshAll);
+
+    async function refreshAll() {
+      await Promise.all([loadRequests(), loadTickets(), loadStats()]);
+      if (currentSelectedReqId) {
+        inspectRequest(currentSelectedReqId);
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const [rRes, tRes, nRes] = await Promise.all([
+          fetch('/api/requests', { headers: {'Authorization': 'Bearer admin'} }),
+          fetch('/api/tickets', { headers: {'Authorization': 'Bearer admin'} }),
+          fetch('/api/notifications', { headers: {'Authorization': 'Bearer admin'} })
+        ]);
+        const rData = await rRes.json();
+        const tData = await tRes.json();
+        const nData = await nRes.json();
+
+        if (rData.success) document.getElementById('statTotalReqs').textContent = rData.data.length;
+        if (tData.success) {
+          document.getElementById('statActiveTickets').textContent = tData.data.filter(t => t.status !== 'CLOSED' && t.status !== 'RESOLVED').length;
+          document.getElementById('statHighRisk').textContent = tData.data.filter(t => t.risk === 'HIGH').length;
+        }
+        if (nData.success) document.getElementById('statNotifs').textContent = nData.data.length;
+      } catch (err) {
+        console.error("Stats load error:", err);
+      }
+    }
+
+    async function loadRequests() {
+      const tbody = document.getElementById('requestsTableBody');
+      try {
+        const res = await fetch('/api/requests', { headers: {'Authorization': 'Bearer admin'} });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        tbody.innerHTML = '';
+        data.data.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-blue-50/50 cursor-pointer transition-colors text-xs text-slate-700';
+          tr.onclick = () => inspectRequest(r.request_id);
+
+          const statusBadge = getStatusBadge(r.status);
+          const riskBadge = getRiskBadge(r.risk);
+
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-mono font-bold text-blue-600">${r.request_id}</td>
+            <td class="py-3 px-4 font-medium text-slate-900">${r.employee_name || r.employee_id}</td>
+            <td class="py-3 px-4">${r.category || '—'}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4">${riskBadge}</td>
+            <td class="py-3 px-4 text-slate-400">${new Date(r.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-red-500 text-center">${err.message}</td></tr>`;
+      }
+    }
+
+    async function loadTickets() {
+      const tbody = document.getElementById('ticketsTableBody');
+      try {
+        const res = await fetch('/api/tickets', { headers: {'Authorization': 'Bearer admin'} });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        tbody.innerHTML = '';
+        data.data.forEach(t => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 text-xs text-slate-700';
+
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-mono font-bold text-slate-900">${t.ticket_id}</td>
+            <td class="py-3 px-4 font-mono text-blue-600">${t.request_id}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800">${t.assigned_team || '—'}</td>
+            <td class="py-3 px-4">${getStatusBadge(t.status)}</td>
+            <td class="py-3 px-4 font-mono">${t.source_policy || '—'}</td>
+            <td class="py-3 px-4">${t.notification_sent ? '✅ Sent' : '❌ No'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-red-500 text-center">${err.message}</td></tr>`;
+      }
+    }
+
+    async function inspectRequest(reqId) {
+      currentSelectedReqId = reqId;
+      document.getElementById('inspectorSubtitle').textContent = `Inspecting full workflow trace for ${reqId}`;
+      const container = document.getElementById('inspectorContent');
+      container.innerHTML = `<div class="p-4 text-slate-400 text-center">Loading audit trail...</div>`;
+
+      try {
+        const [reqRes, auditRes] = await Promise.all([
+          fetch(`/api/requests/${reqId}`, { headers: {'Authorization': 'Bearer admin'} }),
+          fetch(`/api/audit/${reqId}`, { headers: {'Authorization': 'Bearer admin'} })
+        ]);
+
+        const reqData = await reqRes.json();
+        const auditData = await auditRes.json();
+
+        if (!reqData.success) throw new Error(reqData.error);
+        const req = reqData.data;
+        const trail = auditData.success ? auditData.data : [];
+
+        let html = `
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+            <div class="font-bold text-slate-900">Message:</div>
+            <div class="text-slate-700 italic">"${req.message}"</div>
+            <div class="mt-2 text-slate-500">Employee: <strong>${req.employee_name || req.employee_id}</strong> (${req.employee_id})</div>
+          </div>
+        `;
+
+        html += `<div class="relative pl-6 border-l-2 border-blue-200 space-y-4 text-xs mt-4">`;
+
+        trail.forEach(e => {
+          let eventTitle = e.event_type;
+          let details = JSON.stringify(e.metadata);
+
+          html += `
+            <div class="relative">
+              <div class="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-blue-600 border-2 border-white"></div>
+              <div class="font-bold text-slate-800">${eventTitle}</div>
+              <div class="text-[10px] text-slate-400">${new Date(e.timestamp).toLocaleTimeString()} · Actor: ${e.actor}</div>
+              <div class="mt-1 p-2 bg-slate-900 text-slate-200 font-mono text-[10px] rounded-lg overflow-x-auto">
+                ${JSON.stringify(e.metadata, null, 2)}
+              </div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+
+      } catch (err) {
+        container.innerHTML = `<div class="p-4 text-red-500 text-xs">${err.message}</div>`;
+      }
+    }
+
+    function getStatusBadge(status) {
+      const colors = {
+        RESOLVED: 'bg-green-100 text-green-700',
+        ESCALATED: 'bg-rose-100 text-rose-700',
+        WAITING_FOR_EMPLOYEE: 'bg-amber-100 text-amber-700',
+        OPEN: 'bg-blue-100 text-blue-700',
+        IN_PROGRESS: 'bg-purple-100 text-purple-700'
+      };
+      return `<span class="badge ${colors[status] || 'bg-slate-100 text-slate-600'}">${status}</span>`;
+    }
+
+    function getRiskBadge(risk) {
+      const colors = {
+        HIGH: 'bg-rose-100 text-rose-700',
+        MEDIUM: 'bg-amber-100 text-amber-700',
+        LOW: 'bg-emerald-100 text-emerald-700'
+      };
+      return `<span class="badge ${colors[risk] || 'bg-slate-100 text-slate-600'}">${risk || 'LOW'}</span>`;
+    }
+  </script>
+</body>
+</html>
+

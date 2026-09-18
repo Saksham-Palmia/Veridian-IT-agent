@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Veridian IT Support</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --brand: #1a56db;
+      --brand-dark: #1e429f;
+      --surface: #f9fafb;
+    }
+    html, body { height: 100%; margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--surface); }
+    .chat-bubble { animation: fadeUp 0.25s ease-out; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .typing-dot { animation: blink 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.9); } 40% { opacity: 1; transform: scale(1); } }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+    .badge { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold; }
+  </style>
+</head>
+<body class="h-full">
+
+<!-- ── Login Modal ──────────────────────────────────────────────────────────── -->
+<div id="loginModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <!-- Logo / Header -->
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">Veridian IT Support</h1>
+        <p class="text-xs text-gray-500">Internal Service Agent</p>
+      </div>
+    </div>
+
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">Sign in to continue</h2>
+    <p class="text-sm text-gray-500 mb-6">Select your employee profile to access IT support.</p>
+
+    <!-- Employee Picker -->
+    <div id="employeeList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+      <div class="flex items-center justify-center py-6 text-gray-400 text-sm">
+        <svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        Loading employees…
+      </div>
+    </div>
+
+    <div id="loginError" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+
+    <p class="text-xs text-gray-400 mt-4 text-center">Demo mode — no real OAuth required</p>
+  </div>
+</div>
+
+<!-- ── Main Chat App ─────────────────────────────────────────────────────────── -->
+<div id="app" class="hidden h-full flex flex-col">
+
+  <!-- Top Bar -->
+  <header class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="font-semibold text-gray-900 text-sm">Veridian IT Support</h1>
+        <span class="flex items-center gap-1 text-xs text-green-600">
+          <span class="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span> Agent Online
+        </span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div id="userBadge" class="flex items-center gap-2 text-sm text-gray-700">
+        <div id="userAvatar" class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs"></div>
+        <span id="userName" class="hidden sm:inline font-medium"></span>
+      </div>
+      <a href="/admin" class="text-xs text-gray-400 hover:text-blue-600 transition-colors hidden sm:block">Admin →</a>
+      <button onclick="logout()" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Content area -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Chat Panel -->
+    <div class="flex-1 flex flex-col max-w-4xl mx-auto w-full">
+
+      <!-- Welcome / empty state -->
+      <div id="emptyState" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+          <svg class="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">How can I help you today?</h2>
+        <p class="text-gray-500 text-sm max-w-sm mb-8">
+          I'm your Veridian IT Support Agent. Describe your issue and I'll help resolve it, raise a ticket, or connect you with the right team.
+        </p>
+        <!-- Quick prompts -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+          <button onclick="quickSend('I forgot my password and can\'t log in')"
+            class="quick-prompt text-left p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-sm text-gray-700 shadow-sm">
+            🔐 I forgot my password
+          </button>
+          <button onclick="quickSend('My VPN credentials have expired and I can\'t connect remotely')"
+            class="quick-prompt text-left p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-sm text-gray-700 shadow-sm">
+            🌐 VPN is not working
+          </button>
+          <button onclick="quickSend('I received a suspicious phishing email and I\'m worried it\'s a security threat')"
+            class="quick-prompt text-left p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-sm text-gray-700 shadow-sm">
+            🚨 Suspicious phishing email
+          </button>
+          <button onclick="quickSend('Can a visitor use guest wifi in our office today?')"
+            class="quick-prompt text-left p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-sm text-gray-700 shadow-sm">
+            📶 Guest Wi-Fi for visitor
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div id="messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-4 hidden"></div>
+
+      <!-- Input bar -->
+      <div class="border-t border-gray-200 bg-white p-4">
+        <div id="requestBanner" class="hidden mb-3 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between text-xs text-gray-500">
+          <span id="requestBannerText"></span>
+          <button onclick="newConversation()" class="text-blue-600 hover:underline font-medium ml-2">New chat</button>
+        </div>
+        <form id="chatForm" class="flex gap-2" onsubmit="sendMessage(event)">
+          <input
+            id="messageInput"
+            type="text"
+            placeholder="Describe your IT issue…"
+            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 bg-white"
+            autocomplete="off"
+          />
+          <button
+            type="submit"
+            id="sendBtn"
+            class="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span>Send</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+const API = '';  // same origin
+let token = null;
+let employee = null;
+let conversationId = null;
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const savedToken = sessionStorage.getItem('veridian_token');
+  const savedEmployee = sessionStorage.getItem('veridian_employee');
+  if (savedToken && savedEmployee) {
+    token = savedToken;
+    employee = JSON.parse(savedEmployee);
+    showApp();
+  } else {
+    await loadEmployees();
+  }
+});
+
+async function loadEmployees() {
+  try {
+    const res = await fetch(`${API}/api/auth/employees`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const list = document.getElementById('employeeList');
+    list.innerHTML = '';
+    data.data.forEach(emp => {
+      const btn = document.createElement('button');
+      btn.className = 'w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-left group';
+      btn.innerHTML = `
+        <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm flex-shrink-0">
+          ${emp.name.split(' ').map(n => n[0]).join('')}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-gray-900 truncate">${emp.name}</div>
+          <div class="text-xs text-gray-500 truncate">${emp.role || emp.department || ''} · ${emp.employee_type === 'contractor' ? '🔖 Contractor' : '👤 Full-time'}</div>
+        </div>
+        <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-500 flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      `;
+      btn.onclick = () => login(emp.employee_id);
+      list.appendChild(btn);
+    });
+  } catch (err) {
+    document.getElementById('employeeList').innerHTML = `<div class="text-sm text-red-500 p-3">${err.message}</div>`;
+  }
+}
+
+async function login(employeeId) {
+  const errEl = document.getElementById('loginError');
+  errEl.classList.add('hidden');
+  try {
+    const res = await fetch(`${API}/api/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: employeeId }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Login failed');
+
+    token = data.data.access_token;
+    employee = data.data;
+    sessionStorage.setItem('veridian_token', token);
+    sessionStorage.setItem('veridian_employee', JSON.stringify(employee));
+    showApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function showApp() {
+  document.getElementById('loginModal').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
+  // Set user info in header
+  const initials = employee.name.split(' ').map(n => n[0]).join('');
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userName').textContent = employee.name;
+}
+
+function logout() {
+  sessionStorage.clear();
+  token = null;
+  employee = null;
+  conversationId = null;
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('messages').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('requestBanner').classList.add('hidden');
+}
+
+function newConversation() {
+  conversationId = null;
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('messages').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('requestBanner').classList.add('hidden');
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function quickSend(text) {
+  document.getElementById('messageInput').value = text;
+  document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+}
+
+async function sendMessage(e) {
+  e.preventDefault();
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  showMessages();
+
+  // Add employee bubble
+  appendBubble('employee', text);
+
+  // Show typing indicator
+  const typingId = appendTyping();
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+
+  try {
+    const res = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: text,
+        conversation_id: conversationId,
+      }),
+    });
+
+    const data = await res.json();
+    removeTyping(typingId);
+
+    if (!data.success) {
+      appendBubble('agent', `⚠️ Error: ${data.error}`, null, 'error');
+      return;
+    }
+
+    const reply = data.data;
+    conversationId = reply.conversation_id;
+
+    appendBubble('agent', reply.message, reply);
+    updateBanner(reply);
+
+  } catch (err) {
+    removeTyping(typingId);
+    appendBubble('agent', `⚠️ Network error: ${err.message}`, null, 'error');
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function showMessages() {
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('messages').classList.remove('hidden');
+}
+
+function appendBubble(role, text, meta, variant) {
+  const container = document.getElementById('messages');
+  const isEmployee = role === 'employee';
+
+  const wrap = document.createElement('div');
+  wrap.className = `chat-bubble flex gap-3 ${isEmployee ? 'justify-end' : 'justify-start'}`;
+
+  if (!isEmployee) {
+    wrap.innerHTML += `
+      <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      </div>`;
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = `max-w-[80%] sm:max-w-[70%]`;
+
+  if (isEmployee) {
+    bubble.innerHTML = `
+      <div class="bg-blue-600 text-white px-4 py-2.5 rounded-2xl rounded-br-sm text-sm leading-relaxed">${escHtml(text)}</div>
+      <div class="text-xs text-gray-400 mt-1 text-right">${timeNow()}</div>
+    `;
+  } else {
+    const bgColor = variant === 'error' ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200';
+    bubble.innerHTML = `
+      <div class="${bgColor} border px-4 py-2.5 rounded-2xl rounded-bl-sm text-sm leading-relaxed text-gray-800 shadow-sm">${escHtml(text)}</div>
+      ${meta ? buildMetaCard(meta) : ''}
+      <div class="text-xs text-gray-400 mt-1">${timeNow()}</div>
+    `;
+  }
+
+  if (isEmployee) {
+    wrap.appendChild(bubble);
+  } else {
+    wrap.innerHTML += bubble.outerHTML;
+  }
+
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+  return wrap;
+}
+
+function buildMetaCard(meta) {
+  const riskColors = { HIGH: 'bg-red-100 text-red-700', MEDIUM: 'bg-amber-100 text-amber-700', LOW: 'bg-green-100 text-green-700' };
+  const statusColors = { RESOLVED: 'bg-green-100 text-green-700', ESCALATED: 'bg-orange-100 text-orange-700', WAITING_FOR_EMPLOYEE: 'bg-blue-100 text-blue-700', OPEN: 'bg-gray-100 text-gray-600' };
+  const outcomeIcons = { RESOLVE: '✅', CLARIFY: '❓', ESCALATE: '🚨' };
+
+  let html = `<div class="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs space-y-1.5">`;
+
+  html += `<div class="flex items-center flex-wrap gap-2">`;
+  if (meta.status) {
+    const sc = statusColors[meta.status] || 'bg-gray-100 text-gray-600';
+    html += `<span class="badge ${sc}">${outcomeIcons[meta.outcome] || ''} ${meta.status}</span>`;
+  }
+  if (meta.risk) {
+    const rc = riskColors[meta.risk] || 'bg-gray-100 text-gray-600';
+    html += `<span class="badge ${rc}">Risk: ${meta.risk}</span>`;
+  }
+  if (meta.intent && meta.intent !== 'UNKNOWN') {
+    html += `<span class="badge bg-blue-100 text-blue-700">${meta.intent.replace(/_/g, ' ')}</span>`;
+  }
+  html += `</div>`;
+
+  if (meta.source) {
+    html += `<div class="flex items-center gap-1.5 text-gray-500">
+      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <span>Policy: <strong class="text-gray-700">${meta.source.id} — ${meta.source.title}</strong></span>
+    </div>`;
+  }
+
+  if (meta.ticket_id) {
+    html += `<div class="flex items-center gap-1.5 text-gray-500">
+      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+      </svg>
+      <span>Ticket: <strong class="text-gray-700">${meta.ticket_id}</strong>
+      ${meta.assigned_team ? `· Assigned to: <strong class="text-gray-700">${meta.assigned_team}</strong>` : ''}
+      ${meta.notification_sent ? `<span class="ml-1 text-green-600">· Notified ✓</span>` : ''}
+      </span>
+    </div>`;
+  }
+
+  if (meta.request_id) {
+    html += `<div class="text-gray-400 font-mono text-[10px]">REQ: ${meta.request_id}</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function appendTyping() {
+  const container = document.getElementById('messages');
+  const id = 'typing-' + Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = 'chat-bubble flex gap-3 items-end';
+  el.innerHTML = `
+    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    </div>
+    <div class="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm flex gap-1.5 items-center">
+      <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+      <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+      <span class="typing-dot w-2 h-2 bg-gray-400 rounded-full inline-block"></span>
+    </div>`;
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function updateBanner(meta) {
+  const banner = document.getElementById('requestBanner');
+  const bannerText = document.getElementById('requestBannerText');
+  const statusEmoji = { RESOLVED: '✅', ESCALATED: '🚨', WAITING_FOR_EMPLOYEE: '⏳', OPEN: '📋', IN_PROGRESS: '🔄' };
+  bannerText.textContent = `${statusEmoji[meta.status] || '📋'} ${meta.request_id} · Status: ${meta.status}${meta.ticket_id ? ` · Ticket: ${meta.ticket_id}` : ''}`;
+  banner.classList.remove('hidden');
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function timeNow() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+</script>
+</body>
+</html>
+
