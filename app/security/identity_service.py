@@ -15,15 +15,16 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.config.settings import get_settings
+from app.core.exceptions import AuthenticationError, NotFoundError
 from app.models.employee import Employee
 from app.repositories.repositories import EmployeeRepository
-from app.core.exceptions import AuthenticationError, NotFoundError
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
 # ─── Abstract identity provider ───────────────────────────────────────────────
+
 
 class IdentityProvider(ABC):
     @abstractmethod
@@ -34,22 +35,23 @@ class IdentityProvider(ABC):
 
 # ─── Demo provider (local development — no external OAuth needed) ─────────────
 
+
 class DemoIdentityProvider(IdentityProvider):
-    """Allows reviewer to select any seeded employee and immediately use the app."""
-    """Allows reviewer to sign in with email or employee ID."""
+    """Allows local users to sign in with email or employee ID."""
 
     def __init__(self, db: Session):
         self.repo = EmployeeRepository(db)
 
-    def authenticate(self, employee_id: str) -> dict:
     def authenticate(self, identifier: str) -> dict:
+        """Authenticate using an employee ID or email address."""
         identifier = identifier.strip()
+
         try:
-            emp = self.repo.get(employee_id)
             if "@" in identifier:
                 emp = self.repo.get_by_email(identifier.lower())
             else:
                 emp = self.repo.get(identifier)
+
             return {
                 "employee_id": emp.employee_id,
                 "name": emp.name,
@@ -58,71 +60,108 @@ class DemoIdentityProvider(IdentityProvider):
                 "role": emp.role,
                 "employee_type": emp.employee_type,
             }
+
         except NotFoundError:
-            raise AuthenticationError(f"Employee '{employee_id}' not found in demo data.")
-            raise AuthenticationError(f"Account '{identifier}' not found in demo employee directory.")
+            raise AuthenticationError(
+                f"Account '{identifier}' not found in demo employee directory."
+            )
 
 
-# ─── Stub providers for future OAuth integration ──────────────────────────────
-# ─── Stub / OAuth Providers ───────────────────────────────────────────────────
+# ─── OAuth Providers ─────────────────────────────────────────────────────────
+
 
 class GoogleIdentityProvider(IdentityProvider):
-    """Future: validates Google ID tokens and maps to Veridian employee records."""
-    def authenticate(self, google_token: str) -> dict:
-        raise NotImplementedError("Google OAuth not configured for this environment.")
-    """Google Workspace SSO provider."""
+    """Google Workspace SSO provider.
+
+    For local development this simulates Google authentication by accepting
+    a provisioned employee email address. Real Google OAuth token validation
+    can be added later.
+    """
 
     def __init__(self, db: Session):
         self.repo = EmployeeRepository(db)
 
     def authenticate(self, credential: str) -> dict:
+        """Authenticate a provisioned Google Workspace account."""
         credential = credential.strip()
-        # Simulated Google Workspace SSO or token
-        if "@" in credential:
-            email = credential.lower()
-            try:
-                emp = self.repo.get_by_email(email)
-                return {
-                    "employee_id": emp.employee_id,
-                    "name": emp.name,
-                    "email": emp.email,
-                    "department": emp.department,
-                    "role": emp.role,
-                    "employee_type": emp.employee_type,
-                }
-            except NotFoundError:
-                raise AuthenticationError(f"Google account '{email}' is not provisioned in Veridian Directory.")
-        raise AuthenticationError("Invalid Google authentication credential.")
+
+        if "@" not in credential:
+            raise AuthenticationError(
+                "Invalid Google authentication credential."
+            )
+
+        email = credential.lower()
+
+        try:
+            emp = self.repo.get_by_email(email)
+
+            return {
+                "employee_id": emp.employee_id,
+                "name": emp.name,
+                "email": emp.email,
+                "department": emp.department,
+                "role": emp.role,
+                "employee_type": emp.employee_type,
+            }
+
+        except NotFoundError:
+            raise AuthenticationError(
+                f"Google account '{email}' is not provisioned "
+                "in Veridian Directory."
+            )
 
 
 class MicrosoftIdentityProvider(IdentityProvider):
-    """Future: validates Microsoft/Azure AD tokens."""
-    def authenticate(self, ms_token: str) -> dict:
-        raise NotImplementedError("Microsoft OAuth not configured for this environment.")
+    """Future Microsoft/Azure AD identity provider."""
+
+    def authenticate(self, credential: str) -> dict:
+        raise NotImplementedError(
+            "Microsoft OAuth not configured for this environment."
+        )
 
 
 class SlackIdentityProvider(IdentityProvider):
-    """Future: validates Slack identity tokens."""
-    def authenticate(self, slack_token: str) -> dict:
-        raise NotImplementedError("Slack OAuth not configured for this environment.")
+    """Future Slack identity provider."""
+
+    def authenticate(self, credential: str) -> dict:
+        raise NotImplementedError(
+            "Slack OAuth not configured for this environment."
+        )
 
 
 # ─── JWT utilities ────────────────────────────────────────────────────────────
 
+
 def create_access_token(identity: dict) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+    """Create a signed JWT access token for an authenticated employee."""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(
+        minutes=settings.access_token_expire_minutes
+    )
+
     payload = {
         **identity,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": now,
     }
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+    return jwt.encode(
+        payload,
+        settings.jwt_secret,
+        algorithm=settings.jwt_algorithm,
+    )
 
 
 def decode_token(token: str) -> dict:
+    """Decode and validate a JWT access token."""
     try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.jwt_algorithm],
+        )
         return payload
+
     except JWTError as exc:
         raise AuthenticationError(f"Invalid token: {exc}")
 
@@ -130,4 +169,3 @@ def decode_token(token: str) -> dict:
 def get_current_employee(token: str) -> dict:
     """Decode JWT and return employee identity dict."""
     return decode_token(token)
-

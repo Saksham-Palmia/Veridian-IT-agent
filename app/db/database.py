@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config.settings import get_settings
 
@@ -21,6 +21,7 @@ engine = create_engine(
     echo=settings.debug,
 )
 
+
 # Enable WAL mode for SQLite — better concurrent read performance
 @event.listens_for(engine, "connect")
 def set_sqlite_pragma(dbapi_connection, _connection_record):
@@ -29,8 +30,13 @@ def set_sqlite_pragma(dbapi_connection, _connection_record):
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
+
 # ── Session factory ───────────────────────────────────────────────────────────
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
 
 class Base(DeclarativeBase):
@@ -48,8 +54,15 @@ def get_db():
 
 def init_db() -> None:
     """Create all tables and seed data on first run."""
-    # Import models to register them with Base metadata
-    from app.models import employee, conversation, request, ticket, audit, notification  # noqa: F401
+    # Import models to register them with Base metadata.
+    from app.models import (  # noqa: F401
+        audit,
+        conversation,
+        employee,
+        notification,
+        request,
+        ticket,
+    )
 
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created/verified.")
@@ -60,20 +73,13 @@ def init_db() -> None:
 
 # ── Seeding helpers ───────────────────────────────────────────────────────────
 
+
 def _seed_employees() -> None:
+    """Seed the demo employees and keep existing records in sync."""
     from app.models.employee import Employee
 
+    # Keep this list unique by employee_id.
     demo_employees = [
-        {"employee_id": "EMP-001", "name": "Alice Johnson",  "email": "alice.johnson@veridian-corp.example",  "department": "Engineering",  "role": "Software Engineer",     "employee_type": "full_time"},
-        {"employee_id": "EMP-002", "name": "Bob Martinez",   "email": "bob.martinez@veridian-corp.example",   "department": "Marketing",    "role": "Marketing Manager",     "employee_type": "full_time"},
-        {"employee_id": "EMP-003", "name": "Carol Williams", "email": "carol.williams@veridian-corp.example", "department": "Operations",   "role": "Operations Analyst",    "employee_type": "full_time"},
-        {"employee_id": "EMP-004", "name": "David Chen",     "email": "david.chen@veridian-corp.example",     "department": "Finance",      "role": "Financial Analyst",     "employee_type": "full_time"},
-        {"employee_id": "EMP-005", "name": "Emma Davis",     "email": "emma.davis@veridian-corp.example",     "department": "Design",       "role": "UX Designer",           "employee_type": "full_time"},
-        {"employee_id": "EMP-006", "name": "Frank Thompson", "email": "frank.thompson@veridian-corp.example", "department": "Sales",        "role": "Sales Executive",       "employee_type": "full_time"},
-        {"employee_id": "EMP-007", "name": "Grace Lee",      "email": "grace.lee@veridian-corp.example",      "department": "Engineering",  "role": "Senior DBA",            "employee_type": "full_time"},
-        {"employee_id": "EMP-008", "name": "Henry Wilson",   "email": "henry.wilson@veridian-corp.example",   "department": "HR",           "role": "HR Business Partner",   "employee_type": "full_time"},
-        {"employee_id": "EMP-009", "name": "Iris Brown",     "email": "iris.brown@veridian-corp.example",     "department": "Legal",        "role": "Legal Counsel",         "employee_type": "full_time"},
-        {"employee_id": "EMP-010", "name": "James Taylor",   "email": "james.taylor@veridian-corp.example",   "department": "Engineering",  "role": "DevOps Contractor",     "employee_type": "contractor"},
         {
             "employee_id": "EMP-001",
             "name": "Alice Johnson",
@@ -93,70 +99,108 @@ def _seed_employees() -> None:
     ]
 
     with SessionLocal() as db:
-        existing = db.query(Employee).count()
-        if existing == 0:
-            for emp_data in demo_employees:
-        target_ids = {e["employee_id"] for e in demo_employees}
-        db.query(Employee).filter(Employee.employee_id.notin_(target_ids)).delete(synchronize_session=False)
+        target_ids = {emp["employee_id"] for emp in demo_employees}
+
+        # Remove employees that are no longer part of the demo seed data.
+        db.query(Employee).filter(
+            Employee.employee_id.notin_(target_ids)
+        ).delete(synchronize_session=False)
+
+        # Insert new employees or update existing ones.
         for emp_data in demo_employees:
-            existing = db.query(Employee).filter(Employee.employee_id == emp_data["employee_id"]).first()
-            if not existing:
+            existing = (
+                db.query(Employee)
+                .filter(Employee.employee_id == emp_data["employee_id"])
+                .first()
+            )
+
+            if existing is None:
                 db.add(Employee(**emp_data))
-            db.commit()
-            logger.info("Seeded %d demo employees.", len(demo_employees))
             else:
-                for k, v in emp_data.items():
-                    setattr(existing, k, v)
+                for key, value in emp_data.items():
+                    setattr(existing, key, value)
+
         db.commit()
-        logger.info("Seeded %d demo employees (reduced to 2).", len(demo_employees))
+
+        logger.info(
+            "Seeded %d demo employees.",
+            len(demo_employees),
+        )
 
 
 def _seed_requests_and_tickets() -> None:
-    from app.models.request import Request, RequestStatus
-    from app.models.ticket import Ticket, TicketStatus
+    """Seed historical requests and tickets from JSON files if tables are empty."""
+    from app.models.request import Request
+    from app.models.ticket import Ticket
 
     data_dir = Path(__file__).parent.parent.parent / "data"
 
     with SessionLocal() as db:
+        # ── Historical requests ──────────────────────────────────────────────
         req_count = db.query(Request).count()
+
         if req_count == 0:
             seed_requests_path = data_dir / "seed_requests.json"
-            if seed_requests_path.exists():
-                seed_requests = json.loads(seed_requests_path.read_text())
-                for r in seed_requests:
-                    db.add(Request(
-                        request_id=r["request_id"],
-                        employee_id=r["employee_id"],
-                        employee_name=r["employee_name"],
-                        message=r["message"],
-                        category=r["category"],
-                        status=r["status"],
-                        risk=r["risk"],
-                        intent=r.get("intent"),
-                        source_policy=r.get("source_policy"),
-                        ticket_id=r.get("ticket_id"),
-                    ))
-                db.commit()
-                logger.info("Seeded %d historical requests.", len(seed_requests))
 
+            if seed_requests_path.exists():
+                seed_requests = json.loads(
+                    seed_requests_path.read_text(encoding="utf-8")
+                )
+
+                for r in seed_requests:
+                    db.add(
+                        Request(
+                            request_id=r["request_id"],
+                            employee_id=r["employee_id"],
+                            employee_name=r["employee_name"],
+                            message=r["message"],
+                            category=r["category"],
+                            status=r["status"],
+                            risk=r["risk"],
+                            intent=r.get("intent"),
+                            source_policy=r.get("source_policy"),
+                            ticket_id=r.get("ticket_id"),
+                        )
+                    )
+
+                db.commit()
+                logger.info(
+                    "Seeded %d historical requests.",
+                    len(seed_requests),
+                )
+
+        # ── Historical tickets ───────────────────────────────────────────────
         ticket_count = db.query(Ticket).count()
+
         if ticket_count == 0:
             seed_tickets_path = data_dir / "seed_tickets.json"
-            if seed_tickets_path.exists():
-                seed_tickets = json.loads(seed_tickets_path.read_text())
-                for t in seed_tickets:
-                    db.add(Ticket(
-                        ticket_id=t["ticket_id"],
-                        request_id=t["request_id"],
-                        employee_id=t["employee_id"],
-                        category=t["category"],
-                        description=t["description"],
-                        risk=t["risk"],
-                        status=t["status"],
-                        assigned_team=t["assigned_team"],
-                        source_policy=t["source_policy"],
-                        notification_sent=t.get("notification_sent", False),
-                    ))
-                db.commit()
-                logger.info("Seeded %d historical tickets.", len(seed_tickets))
 
+            if seed_tickets_path.exists():
+                seed_tickets = json.loads(
+                    seed_tickets_path.read_text(encoding="utf-8")
+                )
+
+                for t in seed_tickets:
+                    db.add(
+                        Ticket(
+                            ticket_id=t["ticket_id"],
+                            request_id=t["request_id"],
+                            employee_id=t["employee_id"],
+                            category=t["category"],
+                            description=t["description"],
+                            risk=t["risk"],
+                            status=t["status"],
+                            assigned_team=t["assigned_team"],
+                            source_policy=t["source_policy"],
+                            notification_sent=t.get(
+                                "notification_sent",
+                                False,
+                            ),
+                        )
+                    )
+
+                db.commit()
+                logger.info(
+                    "Seeded %d historical tickets.",
+                    len(seed_tickets),
+                )
